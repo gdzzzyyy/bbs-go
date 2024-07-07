@@ -1,21 +1,26 @@
+## 感谢您的支持与鼓励！如果您喜欢这个开源项目，不妨给它点个⭐️⭐️⭐️，您的星星是我们前进的动力 🙏🙏🙏
+
+
 ## 项目地址
 
 - 交流站：[码农俱乐部](https://mlog.club)
-- 文档地址：[http://docs.bbs-go.com/](http://docs.bbs-go.com/)
+- 文档地址：[https://bbs-go.com](https://bbs-go.com)
 - 问题反馈: [https://mlog.club/topics/node/3](https://mlog.club/topics/node/3)
 - Github: [https://github.com/mlogclub/bbs-go](https://github.com/mlogclub/bbs-go)
 - Gitee: [https://gitee.com/mlogclub/bbs-go](https://gitee.com/mlogclub/bbs-go)
 
+
+## 联系我
+
+### 用户交流群
+![BBS-GO用户交流群](docs/images/qq.png)
+
+### 加我微信
+![BBS-GO用户交流群](docs/images/wechat.png)
+
 ## 付费服务
 
 付费是为了项目能够更好的生存下去，请谅解。项目将一如既往的开源下去~
-
-<!-- - 联系QQ：`471243194` -->
-- QQ群：**`397215759`**
-<!-- - ![QQ群](docs/images/qq.png) -->
-- 微信：
-- ![微信](https://s2.loli.net/2022/03/01/ojufvSrGF8PQq14.jpg)
-
 
 | 服务     | 价格  | 服务内容                                         |
 | -------- | ----- | ------------------------------------------------ |
@@ -39,7 +44,7 @@
 
 *技术栈*
 - iris ([https://github.com/kataras/iris](https://github.com/kataras/iris)) Go语言 mvc 框架
-- gorm ([http://gorm.io/](http://gorm.io/)) 最好用的Go语言数据库orm框架
+- gorm ([http://gorm.io](http://gorm.io)) 最好用的Go语言数据库orm框架
 - resty ([https://github.com/go-resty/resty](https://github.com/go-resty/resty)) Go语言好用的 http-client
 - cron ([https://github.com/robfig/cron](https://github.com/robfig/cron)) 定时任务框架
 - goquery ([https://github.com/PuerkitoBio/goquery](https://github.com/PuerkitoBio/goquery)) html dom 元素解析
@@ -55,6 +60,8 @@
 - nuxt.js ([https://nuxtjs.org](https://nuxtjs.org)) 基于Vue的服务端渲染框架，效率高到爆
 
 ### admin
+
+[![bbs-go-admin](https://github.com/mlogclub/bbs-go/actions/workflows/bbs-go-admin.yml/badge.svg)](https://github.com/mlogclub/bbs-go/actions/workflows/bbs-go-admin.yml)
 
 > 管理后台系统，基于`vue.js + element-ui`搭建。
 

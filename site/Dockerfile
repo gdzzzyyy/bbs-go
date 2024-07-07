@@ -1,20 +1,22 @@
-FROM node:16.15.0-alpine
+FROM node:20-alpine AS builder
 
-ENV HOST 0.0.0.0
-ENV APP_HOME /app/bbs-go
-
+ENV APP_HOME /code/bbs-go/site
 WORKDIR "$APP_HOME"
+
 COPY . ./
-COPY nuxt.config.docker.js ./nuxt.config.js
+# RUN npm install -g pnpm --registry=https://registry.npmmirror.com
+# RUN pnpm install --registry=https://registry.npmmirror.com
+RUN npm install -g pnpm
+RUN pnpm install
+RUN pnpm build:docker
 
-# install
-RUN npm config set registry https://registry.npm.taobao.org \
-  && npm config set sass_binary_site https://npm.taobao.org/mirrors/node-sass
-RUN npm install
+FROM node:20-alpine
 
-# build
-ENV NODE_ENV production
-RUN npm run build
+COPY --from=builder /code/bbs-go/site/.output /app/bbs-go/.output
+
+WORKDIR /app/bbs-go
 
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+
+ENV ENV=docker
+CMD ["node", "./.output/server/index.mjs"]

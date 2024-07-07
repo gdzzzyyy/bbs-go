@@ -1,109 +1,134 @@
 <template>
-  <section v-loading="listLoading" class="page-container">
-    <div ref="toolbar" class="toolbar">
-      <el-form :inline="true" :model="filters">
-        <el-form-item>
-          <el-input v-model="filters.id" placeholder="编号" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="filters.userId" placeholder="用户编号" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="filters.title" placeholder="标题" />
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="filters.recommend" clearable placeholder="是否推荐" @change="list">
-            <el-option label="推荐" value="1" />
-            <el-option label="未推荐" value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="filters.status" clearable placeholder="请选择状态" @change="list">
-            <el-option label="正常" :value="0" />
-            <el-option label="删除" :value="1" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="list"> 查询 </el-button>
-        </el-form-item>
-      </el-form>
+  <div class="container">
+    <div class="container-header">
+      <a-form :model="filters" layout="inline" :size="appStore.table.size">
+        <a-form-item>
+          <a-input v-model="filters.id" placeholder="ID" />
+        </a-form-item>
+        <a-form-item>
+          <a-input v-model="filters.userId" placeholder="用户ID" />
+        </a-form-item>
+        <a-form-item>
+          <a-select
+            v-model="filters.status"
+            placeholder="状态"
+            allow-clear
+            @change="list"
+          >
+            <a-option :value="0" label="正常" />
+            <a-option :value="1" label="删除" />
+            <a-option :value="2" label="待审核" />
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-select
+            v-model="filters.recommend"
+            placeholder="是否推荐"
+            allow-clear
+            @change="list"
+          >
+            <a-option :value="1" label="推荐" />
+            <a-option :value="0" label="未推荐" />
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-input v-model="filters.title" placeholder="标题" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" html-type="submit" @click="list">
+            <template #icon> <icon-search /> </template>
+            查询
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
-
-    <div ref="mainContent" :style="{ height: mainHeight }" class="page-section">
-      <topic-list :results="results" @change="list" />
+    <div class="container-main">
+      <div v-if="data && data.results" class="topic-container">
+        <topic-list :results="data.results" @change="list" />
+      </div>
+      <a-empty v-else />
     </div>
-
-    <div ref="pagebar" class="pagebar">
-      <el-pagination
-        :page-sizes="[20, 50, 100, 300]"
-        :current-page="page.page"
-        :page-size="page.limit"
-        :total="page.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="handlePageChange"
-        @size-change="handleLimitChange"
+    <div class="container-footer">
+      <a-pagination
+        style="margin: 10px"
+        :total="pagination.total"
+        :current="pagination.current"
+        :page-size="pagination.pageSize"
+        :show-total="pagination.showTotal"
+        :show-jumper="pagination.showJumper"
+        :show-page-size="pagination.showPageSize"
+        @change="onPageChange"
+        @page-size-change="onPageSizeChange"
       />
     </div>
-  </section>
+  </div>
 </template>
 
-<script>
-import mainHeight from "@/utils/mainHeight";
-import TopicList from "./components/TopicList";
+<script setup>
+  import TopicList from './components/TopicList.vue';
 
-export default {
-  name: "Topic",
-  components: { TopicList },
-  data() {
+  const appStore = useAppStore();
+  const loading = ref(false);
+  const filters = reactive({
+    limit: 20,
+    page: 1,
+  });
+
+  const data = reactive({
+    page: {
+      page: 1,
+      limit: 20,
+      total: 0,
+    },
+    results: [],
+  });
+
+  const pagination = computed(() => {
     return {
-      mainHeight: "300px",
-      results: [],
-      listLoading: false,
-      page: {},
-      filters: {
-        status: 0,
-      },
-      selectedRows: [],
+      total: data.page.total,
+      current: data.page.page,
+      pageSize: data.page.limit,
+      showTotal: true,
+      showJumper: true,
+      showPageSize: true,
     };
-  },
-  mounted() {
-    mainHeight(this);
-    this.list();
-  },
-  methods: {
-    list() {
-      const me = this;
-      me.listLoading = true;
-      const params = Object.assign(me.filters, {
-        page: me.page.page,
-        limit: me.page.limit,
-      });
-      this.axios
-        .form("/api/admin/topic/list", params)
-        .then((data) => {
-          me.results = data.results;
-          me.page = data.page;
-        })
-        .finally(() => {
-          me.listLoading = false;
-        });
-    },
-    handlePageChange(val) {
-      this.page.page = val;
-      this.list();
-    },
-    handleLimitChange(val) {
-      this.page.limit = val;
-      this.list();
-    },
-    handleSelectionChange(val) {
-      this.selectedRows = val;
-    },
-  },
-};
+  });
+
+  onMounted(() => {
+    useTableHeight();
+  });
+
+  const list = async () => {
+    loading.value = true;
+    try {
+      const ret = await axios.postForm(
+        '/api/admin/topic/list',
+        jsonToFormData(filters)
+      );
+      data.page = ret.page;
+      data.results = ret.results;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  list();
+
+  const onPageChange = (page) => {
+    filters.page = page;
+    list();
+  };
+
+  const onPageSizeChange = (pageSize) => {
+    filters.limit = pageSize;
+    list();
+  };
 </script>
-<style scoped lang="scss">
-.page-section {
-  overflow-y: auto;
-}
+
+<style scoped lang="less">
+  .container-footer {
+    // padding: 10px;
+    display: flex;
+    justify-content: end;
+  }
 </style>

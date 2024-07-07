@@ -1,350 +1,315 @@
 <template>
   <div class="topics">
-    <div v-if="results && results.length">
-      <div v-for="topic in results" :key="topic.topicId" class="topic-item">
-        <div class="topic-left">
-          <avatar :user="topic.user" size="40" />
+    <template v-if="results && results.length">
+      <div v-for="topic in results" :key="topic.id" class="topic-item">
+        <div class="topic-status">
+          <a-tag v-if="topic.recommend" color="green">已推荐</a-tag>
+          <a-tag v-if="topic.status === 1" color="red">已删除</a-tag>
         </div>
-        <div class="topic-main">
-          <div class="topic-status">
-            <el-tag v-if="topic.recommend" type="success">已推荐</el-tag>
-            <el-tag v-if="topic.status === 1" type="danger">已删除</el-tag>
+
+        <div class="topic-header">
+          <a-avatar :size="40">
+            <img v-if="topic.user.avatar" :src="topic.user.avatar" />
+            <IconUser v-else />
+          </a-avatar>
+          <div class="topic-head-info">
+            <div class="nickname">{{ topic.user.nickname }}</div>
+            <div class="topic-metas">
+              <div class="meta-item">
+                <span>ID:</span>
+                <span>{{ topic.id }}</span>
+              </div>
+              <div class="meta-item">
+                <span>时间:</span>
+                <span>{{ useFormatDate(topic.createTime) }}</span>
+              </div>
+              <div class="meta-item">
+                <span>查看:</span>
+                <span>{{ topic.viewCount }}</span>
+              </div>
+              <div class="meta-item">
+                <span>点赞:</span>
+                <span>{{ topic.likeCount }}</span>
+              </div>
+              <div class="meta-item">
+                <span>评论:</span>
+                <span>{{ topic.commentCount }}</span>
+              </div>
+            </div>
           </div>
-          <div class="topic-nickname">{{ topic.user.nickname }}</div>
-          <div class="topic-mates">
-            <span> ID: {{ topic.topicId }} </span>
-            <span> 时间: {{ topic.createTime | formatDate }} </span>
-            <span> 查看: {{ topic.viewCount }} </span>
-            <span> 点赞: {{ topic.likeCount }} </span>
-            <span> 评论: {{ topic.commentCount }} </span>
+        </div>
+        <div v-if="topic.type === 0 && topic.summary" class="topic-summary">
+          {{ topic.summary }}
+        </div>
+        <div v-if="topic.type === 1 && topic.content" class="topic-summary">
+          {{ topic.content }}
+        </div>
+        <a-image-preview-group
+          v-if="topic.imageList && topic.imageList.length"
+          infinite
+        >
+          <div class="topic-image-list">
+            <a-image
+              v-for="(image, index) in topic.imageList"
+              :key="index"
+              width="150"
+              height="150"
+              class="image-item"
+              show-loader
+              :src="image.url"
+              fit="cover"
+            />
           </div>
-          <div v-if="topic.type === 0 && topic.summary" class="topic-summary">
-            {{ topic.summary }}
-          </div>
-          <div v-if="topic.type === 1 && topic.content" class="topic-summary">
-            {{ topic.content }}
-          </div>
-          <ul v-if="topic.imageList && topic.imageList.length" class="topic-image-list">
-            <li v-for="(image, index) in topic.imageList" :key="index">
-              <el-image
-                class="image-item"
-                lazy
-                :src="image.url"
-                fit="cover"
-                :preview-src-list="imagePreviewList(topic.imageList)"
-              />
-            </li>
-          </ul>
+        </a-image-preview-group>
+        <div class="topic-footer">
           <div class="topic-tags">
-            <el-tag type="success" size="mini">{{ topic.node.name }}</el-tag>
+            <a-tag v-if="topic.node" color="green" size="mini">{{
+              topic.node.name
+            }}</a-tag>
             <template v-if="topic.tags && topic.tags.length">
-              <el-tag v-for="tag in topic.tags" :key="tag.tagId" type="info" size="mini"
-                >#&nbsp;{{ tag.tagName }}</el-tag
+              <a-tag v-for="tag in topic.tags" :key="tag.id" size="mini"
+                >#&nbsp;{{ tag.name }}</a-tag
               >
             </template>
           </div>
-          <div class="actions">
+          <div class="topic-actions">
             <template v-if="topic.status === 0">
-              <el-link
+              <a-link
                 class="action-item"
-                icon="el-icon-view"
-                :href="('/topic/' + topic.topicId) | siteUrl"
+                :href="useSiteUrl('/topic/' + topic.id)"
                 target="_blank"
-                >查看详情</el-link
+                >查看详情</a-link
               >
-              <el-link
-                class="action-item"
-                icon="el-icon-s-comment"
-                @click="showComments(topic.topicId)"
-                >查看评论</el-link
-              >
-              <el-link
+              <a-link class="action-item" @click="showComments(topic.id)">
+                查看评论
+              </a-link>
+
+              <a-popconfirm
                 v-if="topic.recommend"
-                class="action-item"
-                icon="el-icon-s-flag"
-                @click="cancelRecommend(topic.topicId)"
-                >取消推荐</el-link
+                content="是否确定取消推荐？"
+                @ok="cancelRecommend(topic.id)"
               >
-              <el-link
+                <a-button class="action-item" size="mini" type="primary"
+                  >取消推荐</a-button
+                >
+              </a-popconfirm>
+
+              <a-popconfirm
                 v-else-if="!topic.recommend && topic.status === 0"
-                class="action-item"
-                icon="el-icon-s-flag"
-                @click="recommend(topic.topicId)"
-                >推荐</el-link
+                content="是否确定推荐？"
+                @ok="recommend(topic.id)"
               >
-              <el-link
-                class="action-item"
-                type="danger"
-                icon="el-icon-delete"
-                @click="deleteSubmit(topic.topicId)"
-                >删除</el-link
+                <a-button class="action-item" size="mini" type="primary"
+                  >推荐</a-button
+                >
+              </a-popconfirm>
+
+              <a-popconfirm
+                content="是否确定删除？"
+                @ok="deleteSubmit(topic.id)"
               >
+                <a-button class="action-item" size="mini" type="primary"
+                  >删除</a-button
+                >
+              </a-popconfirm>
             </template>
             <template v-else-if="topic.status === 1">
-              <el-link
-                class="action-item"
-                type="info"
-                icon="el-icon-delete"
-                @click="undeleteSubmit(topic.topicId)"
-                >取消删除</el-link
+              <a-popconfirm
+                content="是否确定取消删除？"
+                @ok="undeleteSubmit(topic.id)"
               >
+                <a-button class="action-item" size="mini" type="primary"
+                  >取消删除</a-button
+                >
+              </a-popconfirm>
             </template>
             <template v-else-if="topic.status === 2">
-              <el-link
+              <a-link
                 class="action-item"
-                icon="el-icon-view"
-                :href="('/topic/' + topic.topicId) | siteUrl"
+                :href="useSiteUrl('/topic/' + topic.id)"
                 target="_blank"
-                >查看详情</el-link
+                >查看详情</a-link
               >
-              <el-link
-                class="action-item"
-                icon="el-icon-s-comment"
-                @click="showComments(topic.topicId)"
-                >查看评论</el-link
+              <a-link class="action-item" @click="showComments(topic.id)"
+                >查看评论</a-link
               >
-              <el-link
-                class="action-item"
-                type="danger"
-                icon="el-icon-delete"
-                @click="deleteSubmit(topic.topicId)"
-                >删除</el-link
+              <a-popconfirm
+                content="是否确定删除？"
+                @ok="deleteSubmit(topic.id)"
               >
-              <el-link
-                type="success"
-                icon="el-icon-s-check"
-                class="action-item"
-                @click="auditSubmit(topic)"
-                >审核通过</el-link
+                <a-button class="action-item" size="mini" type="primary"
+                  >删除</a-button
+                >
+              </a-popconfirm>
+              <a-popconfirm
+                content="是否确定删除？"
+                @ok="auditSubmit(topic.id)"
               >
+                <a-button class="action-item" size="mini" type="primary"
+                  >审核通过</a-button
+                >
+              </a-popconfirm>
             </template>
           </div>
         </div>
       </div>
-    </div>
-    <el-empty v-else />
-
-    <comments-dialog ref="commentsDialog" />
+    </template>
+    <a-empty v-else />
   </div>
 </template>
 
-<script>
-import Avatar from "@/components/Avatar";
-import CommentsDialog from "../../comments/CommentsDialog";
-export default {
-  components: { Avatar, CommentsDialog },
-  props: {
+<script setup>
+  defineProps({
     results: {
       type: Array,
       default() {
         return [];
       },
     },
-  },
-  methods: {
-    deleteSubmit(topicId) {
-      const me = this;
-      this.$confirm("是否确认删除该帖子?", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(function () {
-          me.axios
-            .form("/api/admin/topic/delete", { id: topicId })
-            .then(function () {
-              me.$message({ message: "删除成功", type: "success" });
-              me.$emit("change");
-            })
-            .catch(function (err) {
-              me.$notify.error({ title: "错误", message: err.message || err });
-            });
-        })
-        .catch(function () {
-          me.$message({
-            type: "info",
-            message: "已取消删除",
-          });
-        });
-    },
-    async undeleteSubmit(topicId) {
-      try {
-        const flag = await this.$confirm("是否确认取消删除?", "提示", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        });
-        if (flag) {
-          try {
-            await this.axios.form("/api/admin/topic/undelete", { id: topicId });
-            this.$emit("change");
-            this.$message.success("操作成功");
-          } catch (err) {
-            this.$notify.error({ title: "错误", message: err.message || err });
-          }
-        }
-      } catch (e) {
-        this.$message.success("操作已取消");
-      }
-    },
-    async recommend(id) {
-      try {
-        const flag = await this.$confirm("是否确认推荐?", "提示", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        });
-        if (flag) {
-          try {
-            await this.axios.form("/api/admin/topic/recommend", {
-              id,
-            });
-            this.$message.success("操作成功");
-            this.$emit("change");
-          } catch (e) {
-            this.$notify.error({ title: "错误", message: e.message });
-          }
-        }
-      } catch (e) {
-        this.$message.success("操作已取消");
-      }
-    },
-    async cancelRecommend(id) {
-      try {
-        const flag = await this.$confirm("是否取消推荐?", "提示", {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        });
-        if (flag) {
-          try {
-            await this.axios.delete("/api/admin/topic/recommend", {
-              params: {
-                id,
-              },
-            });
-            this.$message.success("操作成功");
-            this.$emit("change");
-          } catch (e) {
-            this.$notify.error({ title: "错误", message: e.message });
-          }
-        }
-      } catch (e) {
-        this.$message.success("操作已取消");
-      }
-    },
-    auditSubmit(row) {
-      const me = this;
-      this.$confirm("确认审核通过？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          this.axios
-            .form("/api/admin/topic/audit", { id: row.topicId })
-            .then((data) => {
-              me.$message({ message: "审核成功", type: "success" });
-              me.$emit("change");
-            })
-            .catch((rsp) => {
-              me.$notify.error({ title: "错误", message: rsp.message });
-            });
-        })
-        .catch(() => {
-          this.$message.success("操作已取消");
-        });
-    },
-    showComments(topicId) {
-      this.$refs.commentsDialog.show("topic", topicId);
-    },
-    imagePreviewList(imageList) {
-      var ret = [];
-      for (let i = 0; i < imageList.length; i++) {
-        const ele = imageList[i];
-        ret.push(ele.url);
-      }
-      return ret;
-    },
-  },
-};
+  });
+
+  const emits = defineEmits(['change']);
+
+  const deleteSubmit = async (topicId) => {
+    try {
+      await axios.form(
+        '/api/admin/topic/delete',
+        jsonToFormData({ id: topicId })
+      );
+      useNotificationSuccess('删除成功');
+      emits('change');
+    } catch (e) {
+      useHandleError(e);
+    }
+  };
+  const undeleteSubmit = async (topicId) => {
+    try {
+      await axios.form(
+        '/api/admin/topic/undelete',
+        jsonToFormData({ id: topicId })
+      );
+      useNotificationSuccess('取消删除成功');
+      emits('change');
+    } catch (e) {
+      useHandleError(e);
+    }
+  };
+  const recommend = async (topicId) => {
+    try {
+      await axios.form(
+        '/api/admin/topic/recommend',
+        jsonToFormData({ id: topicId })
+      );
+      useNotificationSuccess('推荐成功');
+      emits('change');
+    } catch (e) {
+      useHandleError(e);
+    }
+  };
+  const cancelRecommend = async (topicId) => {
+    try {
+      await axios.delete(`/api/admin/topic/recommend?id=${topicId}`);
+      useNotificationSuccess('取消推荐成功');
+      emits('change');
+    } catch (e) {
+      useHandleError(e);
+    }
+  };
+  const auditSubmit = async (topicId) => {
+    try {
+      await axios.form(
+        '/api/admin/topic/audit',
+        jsonToFormData({ id: topicId })
+      );
+      useNotificationSuccess('审核成功');
+      emits('change');
+    } catch (e) {
+      useHandleError(e);
+    }
+  };
+  const showComments = (topicId) => {
+    // this.$refs.commentsDialog.show('topic', topicId);
+  };
 </script>
 
-<style scoped lang="scss">
-.topics {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  overflow-y: auto;
-
-  .topic-item {
-    display: flex;
-    padding: 20px 10px 10px 10px;
-    border-bottom: 1px solid #e9e9e9;
-    .topic-main {
+<style scoped lang="less">
+  .topics {
+    .topic-item {
+      padding: 10px 20px;
+      row-gap: 10px;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid var(--color-border-1);
       position: relative;
-      width: 100%;
-      margin-left: 10px;
       .topic-status {
         position: absolute;
-        right: 20px;
+        right: 0;
+        display: flex;
+        align-items: center;
+        column-gap: 10px;
+      }
 
-        .el-tag {
+      .topic-header {
+        display: flex;
+        align-items: center;
+        .topic-head-info {
           margin-left: 10px;
-        }
-      }
-      .topic-nickname {
-        font-size: 15px;
-        font-weight: 500;
-        color: #111827;
-      }
-      .topic-mates {
-        margin-top: 10px;
-        font-size: 13px;
-        color: #6b7280;
+          display: flex;
+          flex-direction: column;
+          row-gap: 10px;
+          .nickname {
+            color: var(--color-neutral-8);
+            font-size: 14px;
+          }
+          .topic-metas {
+            display: flex;
+            align-items: center;
+            column-gap: 10px;
 
-        i {
-          font-size: 12px;
-        }
+            .meta-item {
+              color: var(--color-neutral-6);
+              font-size: 12px;
 
-        span {
-          margin-right: 15px;
+              display: flex;
+              align-items: center;
+              column-gap: 3px;
+            }
+          }
         }
       }
+
       .topic-summary {
-        margin-top: 10px;
+        color: var(--color-neutral-8);
         font-size: 14px;
-        color: #4e4f53;
       }
+
       .topic-image-list {
         display: flex;
-        list-style: none;
-        padding: 0;
-        margin: 10px 0 0 0;
+        row-gap: 10px;
+        column-gap: 10px;
 
         .image-item {
-          width: 150px;
-          height: 150px;
-          margin: 0 10px 10px 0;
+          cursor: pointer;
         }
       }
 
-      .topic-tags {
-        margin-top: 10px;
-
-        .el-tag {
-          margin-right: 10px;
+      .topic-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        .topic-tags {
+          display: flex;
+          align-items: center;
+          row-gap: 10px;
+          column-gap: 10px;
         }
-      }
-
-      .actions {
-        margin-top: 10px;
-        .action-item {
-          margin-right: 15px;
-          font-size: 13px;
+        .topic-actions {
+          display: flex;
+          align-items: center;
+          row-gap: 10px;
+          column-gap: 10px;
         }
       }
     }
   }
-}
 </style>

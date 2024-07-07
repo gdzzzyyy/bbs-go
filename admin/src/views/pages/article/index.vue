@@ -1,102 +1,120 @@
 <template>
-  <section v-loading="listLoading" class="page-container">
-    <!--工具条-->
-    <div ref="toolbar" class="toolbar">
-      <el-form :inline="true" :model="filters">
-        <el-form-item>
-          <el-input v-model="filters.id" placeholder="编号" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="filters.userId" placeholder="用户编号" />
-        </el-form-item>
-        <el-form-item>
-          <el-input v-model="filters.title" placeholder="标题" />
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="filters.status" clearable placeholder="请选择状态" @change="list">
-            <el-option label="正常" :value="0" />
-            <el-option label="已删除" :value="1" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="list"> 查询 </el-button>
-        </el-form-item>
-      </el-form>
+  <div class="container">
+    <div class="container-header">
+      <a-form :model="filters" layout="inline" :size="appStore.table.size">
+        <a-form-item>
+          <a-input v-model="filters.id" placeholder="ID" />
+        </a-form-item>
+        <a-form-item>
+          <a-input v-model="filters.userId" placeholder="用户编号" />
+        </a-form-item>
+        <a-form-item>
+          <a-input v-model="filters.title" placeholder="标题" />
+        </a-form-item>
+        <a-form-item>
+          <a-select
+            v-model="filters.status"
+            placeholder="状态"
+            allow-clear
+            @change="list"
+          >
+            <a-option :value="0" label="正常" />
+            <a-option :value="1" label="删除" />
+            <a-option :value="2" label="待审核" />
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-input v-model="filters.title" placeholder="标题" />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" html-type="submit" @click="list">
+            <template #icon> <icon-search /> </template>
+            查询
+          </a-button>
+        </a-form-item>
+      </a-form>
     </div>
-
-    <!--列表-->
-    <div ref="mainContent" :style="{ height: mainHeight }" class="page-section">
-      <article-list :results="results" @change="list" />
+    <div class="container-main">
+      <div v-if="data && data.results">
+        <article-list :results="data.results" @change="list" />
+        <div style="margin-top: 10px; display: flex; justify-content: flex-end">
+          <a-pagination
+            :total="pagination.total"
+            :current="pagination.current"
+            :page-size="pagination.pageSize"
+            :show-total="pagination.showTotal"
+            :show-jumper="pagination.showJumper"
+            :show-page-size="pagination.showPageSize"
+            @change="onPageChange"
+            @page-size-change="onPageSizeChange"
+          />
+        </div>
+      </div>
+      <a-empty v-else />
     </div>
-
-    <!--工具条-->
-    <div ref="pagebar" class="pagebar">
-      <el-pagination
-        :page-sizes="[20, 50, 100, 300]"
-        :current-page="page.page"
-        :page-size="page.limit"
-        :total="page.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="handlePageChange"
-        @size-change="handleLimitChange"
-      />
-    </div>
-  </section>
+  </div>
 </template>
 
-<script>
-import mainHeight from "@/utils/mainHeight";
-import ArticleList from "./components/ArticleList";
+<script setup lang="ts">
+  import ArticleList from './components/ArticleList.vue';
 
-export default {
-  name: "Article",
-  components: { ArticleList },
-  data() {
+  const appStore = useAppStore();
+  const loading = ref(false);
+  const filters = reactive({
+    limit: 20,
+    page: 1,
+
+    id: undefined,
+    userId: undefined,
+    title: undefined,
+    status: 0,
+  });
+
+  const data = reactive({
+    page: {
+      page: 1,
+      limit: 20,
+      total: 0,
+    },
+    results: [],
+  });
+
+  const pagination = computed(() => {
     return {
-      mainHeight: "300px",
-      results: [],
-      listLoading: false,
-      page: {},
-      filters: {
-        status: 0,
-      },
+      total: data.page.total,
+      current: data.page.page,
+      pageSize: data.page.limit,
+      showTotal: true,
+      showJumper: true,
+      showPageSize: true,
     };
-  },
-  mounted() {
-    mainHeight(this);
-    this.list();
-  },
-  methods: {
-    async list() {
-      this.listLoading = true;
-      const params = Object.assign(this.filters, {
-        page: this.page.page,
-        limit: this.page.limit,
-      });
-      try {
-        const data = await this.axios.form("/api/admin/article/list", params);
-        this.results = data.results;
-        this.page = data.page;
-      } catch (err) {
-        // this.$message.error(err.message);
-      } finally {
-        this.listLoading = false;
-      }
-    },
-    handlePageChange(val) {
-      this.page.page = val;
-      this.list();
-    },
-    handleLimitChange(val) {
-      this.page.limit = val;
-      this.list();
-    },
-  },
-};
+  });
+
+  const list = async () => {
+    loading.value = true;
+    try {
+      const ret = await axios.postForm<any>(
+        '/api/admin/article/list',
+        jsonToFormData(filters)
+      );
+      data.page = ret.page;
+      data.results = ret.results;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  list();
+
+  const onPageChange = (page: number) => {
+    filters.page = page;
+    list();
+  };
+
+  const onPageSizeChange = (pageSize: number) => {
+    filters.limit = pageSize;
+    list();
+  };
 </script>
 
-<style scoped lang="scss">
-.page-section {
-  overflow-y: auto;
-}
-</style>
+<style lang="less" scoped></style>

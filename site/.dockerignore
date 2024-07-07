@@ -1,5 +1,4 @@
-node_modules
+.output
 .nuxt
-nuxt.zip
-nuxt.config.js
-**/README.md
+node_modules
+.eslintcache

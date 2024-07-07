@@ -16,6 +16,8 @@ bbs-go
 
 bbs-go.yaml
 bbs-go.prod.yaml
+bbs-go.dev.yaml
+bbs-go.test.yaml
 
 .idea/*
 build/*
@@ -25,9 +27,14 @@ tags
 
 logs/*.log
 web/*
+tmp/*
 
-generator/*
+internal/web*
+
+cmd/generator/*
 go.work
 go.work.sum
 
 ip2region.xdb
+
+__debug_bin*
